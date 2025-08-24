@@ -131,3 +131,6 @@ coverage.xml
 
 # Virtual Environment symlink (points to ../venv)
 # Note: Both venv/ and venv symlink are ignored above
+
+# Local virtual environment
+.venv/

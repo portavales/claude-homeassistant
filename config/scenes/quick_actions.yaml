@@ -1,0 +1,26 @@
+# /config/scenes/quick_actions.yaml
+- name: LR · All Off
+  entities:
+    light.living_room_all_lights: "off"
+
+- name: LR · Table
+  entities:
+    light.living_room_lights_4:
+      state: "on"
+      brightness_pct: 100
+    light.living_room_lights_5:
+      state: "on"
+      brightness_pct: 100
+    light.living_room_all_lights: "on"
+
+- name: LR · Carpet Dim
+  entities:
+    light.living_room_lights_2:
+      state: "on"
+      brightness_pct: 30
+    light.living_room_lights_3:
+      state: "on"
+      brightness_pct: 30
+    light.living_room_lights_1: "off"
+    light.living_room_lights_4: "on"     # table lamp keeps full
+    light.living_room_lights_5: "off"

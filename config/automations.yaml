@@ -1,51 +1,294 @@
-# Example Home Assistant Automations
-# These are example automations showcasing common patterns
-
-- id: 'example_motion_lights'
-  alias: 'Example: Motion Activated Lights'
-  description: 'Turn on lights when motion is detected'
-  trigger:
-    - platform: state
-      entity_id: binary_sensor.living_room_motion
-      to: 'on'
-  condition:
-    - condition: state
-      entity_id: sun.sun
-      state: 'below_horizon'
-  action:
-    - service: light.turn_on
+- id: '1748022181098'
+  alias: Kids Bedroom Thermostat Action
+  description: ''
+  triggers:
+  - trigger: state
+    entity_id:
+    - climate.kids_bedroom_thermostat_thermostat_0
+    attribute: hvac_action
+  conditions: []
+  actions:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: climate.kids_bedroom_thermostat_thermostat_0
+        attribute: hvac_action
+        state: heating
+      sequence:
+      - action: switch.turn_on
+        metadata: {}
+        data: {}
+        target:
+          entity_id: switch.esp32_relay_x8_2_kids_bedroom
+    default:
+    - action: switch.turn_off
+      metadata: {}
+      data: {}
       target:
-        entity_id: light.living_room_main
-      data:
-        brightness_pct: 75
-
-- id: 'example_schedule_lights'
-  alias: 'Example: Evening Light Schedule'
-  description: 'Turn on evening lights at sunset'
-  trigger:
-    - platform: sun
-      event: sunset
-      offset: "-00:30:00"
-  action:
-    - service: light.turn_on
+        entity_id: switch.esp32_relay_x8_2_kids_bedroom
+  mode: single
+- id: '1748023454674'
+  alias: Living Room Thermostat Action
+  description: ''
+  triggers:
+  - trigger: state
+    entity_id:
+    - climate.living_room_thermostat
+    attribute: hvac_action
+  conditions: []
+  actions:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: climate.living_room_thermostat
+        attribute: hvac_action
+        state: heating
+      sequence:
+      - action: switch.turn_on
+        metadata: {}
+        data: {}
+        target:
+          entity_id: switch.esp32_relay_x8_1_living_room
+    default:
+    - action: switch.turn_off
+      metadata: {}
+      data: {}
       target:
-        area_id: living_room
-      data:
-        brightness_pct: 50
-
-- id: 'example_device_notification'
-  alias: 'Example: Low Battery Notification'
-  description: 'Notify when device battery is low'
-  trigger:
-    - platform: numeric_state
-      entity_id: sensor.phone_battery_level
-      below: 20
-  condition:
-    - condition: time
-      after: '09:00:00'
-      before: '22:00:00'
-  action:
-    - service: notify.mobile_app
-      data:
-        title: "Low Battery Alert"
-        message: "Your phone battery is at {{ states('sensor.phone_battery_level') }}%"
+        entity_id: switch.esp32_relay_x8_1_living_room
+  mode: single
+- id: '1748024705036'
+  alias: Master Bedroom Thermostat Action
+  description: ''
+  triggers:
+  - trigger: state
+    entity_id:
+    - climate.master_bedroom_thermostat_thermostat_0
+    attribute: hvac_action
+  conditions: []
+  actions:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: climate.master_bedroom_thermostat_thermostat_0
+        attribute: hvac_action
+        state: heating
+      sequence:
+      - action: switch.turn_on
+        metadata: {}
+        data: {}
+        target:
+          entity_id: switch.esp32_relay_x8_2_master_bedroom
+    default:
+    - action: switch.turn_off
+      metadata: {}
+      data: {}
+      target:
+        entity_id: switch.esp32_relay_x8_2_master_bedroom
+  mode: single
+- id: '1748030909100'
+  alias: Guest Bedroom Thermostat Action
+  description: ''
+  triggers:
+  - trigger: state
+    entity_id:
+    - climate.guest_bedroom_thermostat_thermostat_0
+    attribute: hvac_action
+  conditions: []
+  actions:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: climate.guest_bedroom_thermostat_thermostat_0
+        attribute: hvac_action
+        state: heating
+      sequence:
+      - action: switch.turn_on
+        metadata: {}
+        data: {}
+        target:
+          entity_id: switch.esp32_relay_x8_1_guest_bedroom
+    default:
+    - action: switch.turn_off
+      metadata: {}
+      data: {}
+      target:
+        entity_id: switch.esp32_relay_x8_1_guest_bedroom
+  mode: single
+- id: '1748251254513'
+  alias: Master Bathroom Thermostat Action
+  description: Controls a bathroom switch based on thermostat heating status and humidity.
+  triggers:
+  - entity_id:
+    - climate.master_bathroom_thermostat_thermostat_0
+    attribute: hvac_action
+    trigger: state
+  - entity_id:
+    - sensor.master_bathroom_thermostat_humidity
+    above: 52
+    trigger: numeric_state
+    for:
+      hours: 0
+      minutes: 2
+      seconds: 0
+  - entity_id:
+    - sensor.master_bathroom_thermostat_humidity
+    below: 48
+    trigger: numeric_state
+    for:
+      hours: 0
+      minutes: 2
+      seconds: 0
+  conditions: []
+  actions:
+  - choose:
+    - conditions:
+      - condition: or
+        conditions:
+        - condition: state
+          entity_id: climate.master_bathroom_thermostat_thermostat_0
+          attribute: hvac_action
+          state: heating
+        - condition: numeric_state
+          entity_id: sensor.master_bathroom_thermostat_humidity
+          above: 50
+      sequence:
+      - target:
+          entity_id: switch.esp32_relay_x8_2_master_bathroom
+        action: switch.turn_on
+        data: {}
+    default:
+    - target:
+        entity_id: switch.esp32_relay_x8_2_master_bathroom
+      action: switch.turn_off
+      data: {}
+  mode: single
+- id: '1754121710364'
+  alias: Kitchen Lights - Turn On with Occupancy
+  description: Turns on the correct kitchen light based on occupancy and time of day,
+    if not manually overridden.
+  triggers:
+  - entity_id: sensor.sensy_one_d2f878_any_presence
+    to: Detected
+    trigger: state
+  - entity_id: binary_sensor.kitchen_stairs_motion_motion
+    to: 'on'
+    trigger: state
+  - trigger: state
+    entity_id:
+    - sensor.sensy_one_d2f878_any_movement
+    to: Detected
+  conditions:
+  - condition: state
+    entity_id: input_boolean.kitchen_lights_manual_override
+    state: 'off'
+  - condition: state
+    entity_id:
+    - switch.kitchen_lights_1
+    - light.kitchen_lights_2
+    state: 'off'
+  actions:
+  - target:
+      entity_id: automation.kitchen_lights_set_manual_override
+    action: automation.turn_off
+    data:
+      stop_actions: true
+  - choose:
+    - conditions:
+      - condition: time
+        after: 00:00:00
+        before: 06:00:00
+      sequence:
+      - target:
+          entity_id: light.kitchen_lights_2
+        data:
+          brightness_pct: 20
+        action: light.turn_on
+    default:
+    - target:
+        entity_id: switch.kitchen_lights_1
+      action: switch.turn_on
+      data: {}
+  - delay:
+      seconds: 5
+  - target:
+      entity_id: automation.kitchen_lights_set_manual_override
+    action: automation.turn_on
+    data: {}
+  mode: restart
+- id: '1754121744726'
+  alias: Kitchen Lights - Turn Off When Unoccupied
+  description: Turns off both kitchen lights after a delay if no presence is detected
+    and not manually overridden.
+  triggers:
+  - entity_id:
+    - switch.kitchen_lights_1
+    - light.kitchen_lights_2
+    to: 'on'
+    for:
+      minutes: 2
+    trigger: state
+  conditions:
+  - condition: state
+    entity_id: input_boolean.kitchen_lights_manual_override
+    state: 'off'
+  actions:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: sensor.sensy_one_d2f878_any_presence
+        state: Clear
+      sequence: []
+    default:
+    - wait_for_trigger:
+      - entity_id: sensor.sensy_one_d2f878_any_presence
+        to: Clear
+        trigger: state
+  - delay:
+      minutes: 1
+  - target:
+      entity_id:
+      - switch.kitchen_lights_1
+      - light.kitchen_lights_2
+    action: homeassistant.turn_off
+  mode: single
+- id: '1754121766671'
+  alias: Kitchen Lights - Set Manual Override
+  description: Detects if a kitchen light was turned on manually (e.g., wall switch)
+    and sets an override.
+  triggers:
+  - entity_id:
+    - switch.kitchen_lights_1
+    - light.kitchen_lights_2
+    to: 'on'
+    trigger: state
+  conditions: []
+  actions:
+  - delay:
+      seconds: 5
+  - choose:
+    - conditions:
+      - condition: template
+        value_template: "{{ trigger.to_state.context.parent_id is none or\n   trigger.to_state.context.parent_id
+          != states.automation.kitchen_lights_turn_on_with_occupancy.context.id }}"
+      sequence:
+      - target:
+          entity_id: input_boolean.kitchen_lights_manual_override
+        action: input_boolean.turn_on
+        data: {}
+  mode: single
+- id: '1754121822112'
+  alias: Kitchen Lights - Reset Manual Override
+  description: Resets the manual override when both kitchen lights are turned off.
+  triggers:
+  - value_template: '{{ is_state(''switch.kitchen_lights_1'', ''off'') and is_state(''light.kitchen_lights_2'',
+      ''off'') }}'
+    trigger: template
+  conditions:
+  - condition: state
+    entity_id: input_boolean.kitchen_lights_manual_override
+    state: 'on'
+  actions:
+  - target:
+      entity_id: input_boolean.kitchen_lights_manual_override
+    action: input_boolean.turn_off
+  mode: single

@@ -1,0 +1,167 @@
+# Presence Simulation – smarter night routine with quiet hours + recent-change filtering
+
+###############################################################################
+# 1) Evening randomizer
+###############################################################################
+- id: presence_simulation_evening_randomizer
+  alias: Presence Simulation – Evening random lights while away
+  mode: restart
+
+  # --- When to start/loop the routine ---
+  triggers:
+    # start automatically at sunset
+    - trigger: sun
+      event: sunset
+    # (re)start when you arm it
+    - trigger: state
+      entity_id: input_boolean.presence_simulator
+      to: "on"
+    # (re)start when you leave
+    - trigger: state
+      entity_id: person.portavales
+      to: "not_home"
+
+  # --- Only run when armed, away, and it's dark ---
+  conditions:
+    - condition: state
+      entity_id: input_boolean.presence_simulator
+      state: "on"
+    - condition: state
+      entity_id: person.portavales
+      state: "not_home"
+    - condition: or
+      conditions:
+        - condition: sun
+          after: sunset
+          before: sunrise
+        - condition: template
+          value_template: "{{ is_state('sun.sun','below_horizon') }}"
+
+  # --- Tunables and candidate selection ---
+  variables:
+    # quiet hours: do not keep simulating after this time (local)
+    quiet_hours_end: "23:30:00"   # stop by 23:30 (turn off whatever is on)
+    quiet_hours_resume: "06:00:00" # safeguard if someone arms overnight
+
+    # "recent change" window — skip lights touched in last N minutes
+    min_recent_minutes: 10
+
+    # dwell time window in minutes
+    hold_min: "{{ range(20, 46) | random }}"   # 20..45 minutes
+
+    # brightness between 25%..85%
+    bri: "{{ range(25, 86) | random }}"
+
+    # compute candidates = group members not changed recently
+    now_ts: "{{ as_timestamp(now()) }}"
+    candidates: >-
+      {% set ns = namespace(ids=[]) %}
+      {% for s in expand('light.presence_simulation_all_lights') %}
+        {% if s is not none and s.entity_id is string %}
+          {% set last = as_timestamp(s.last_changed) if s.last_changed is defined else 0 %}
+          {% if (now_ts - last) > (min_recent_minutes * 60) %}
+            {% set ns.ids = ns.ids + [ s.entity_id ] %}
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+      {{ ns.ids }}
+
+    # pick one at random
+    chosen: "{{ (candidates | random) if candidates|count > 0 else None }}"
+
+  actions:
+    # If we just triggered because "sunset" happened: random small start delay so it's not robotic
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: "{{ trigger.platform == 'sun' and trigger.event == 'sunset' }}"
+          sequence:
+            - delay:
+                minutes: "{{ range(5, 31) | random }}"  # 5..30 minute delay
+      default: []
+
+    # Respect quiet hours cut-off
+    - condition: or
+      conditions:
+        - condition: time
+          before: "{{ quiet_hours_end }}"
+        - condition: time
+          after: "{{ quiet_hours_resume }}"
+
+    # Bail if group is empty or all lights were recently changed
+    - condition: template
+      value_template: "{{ chosen is not none }}"
+
+    # OPTIONAL: turn off any lights from the pool before picking a new one (prevents all-on)
+    - action: light.turn_off
+      target:
+        entity_id: "{{ candidates }}"
+
+    # Turn on the chosen light at a random brightness
+    - action: light.turn_on
+      target:
+        entity_id: "{{ chosen }}"
+      data:
+        brightness_pct: "{{ bri }}"
+
+    # Wait a random dwell time
+    - delay:
+        minutes: "{{ hold_min }}"
+
+    # Loop while still armed, away, dark, and within quiet hours
+    - choose:
+        - conditions:
+            - condition: state
+              entity_id: input_boolean.presence_simulator
+              state: "on"
+            - condition: state
+              entity_id: person.portavales
+              state: "not_home"
+            - condition: or
+              conditions:
+                - condition: sun
+                  after: sunset
+                  before: sunrise
+                - condition: template
+                  value_template: "{{ is_state('sun.sun','below_horizon') }}"
+            - condition: or
+              conditions:
+                - condition: time
+                  before: "{{ quiet_hours_end }}"
+                - condition: time
+                  after: "{{ quiet_hours_resume }}"
+          sequence:
+            - action: automation.trigger
+              target:
+                entity_id: automation.presence_simulation_evening_randomizer
+              data:
+                skip_condition: true
+      default:
+        # Quiet hours or morning or disarmed: turn everything from the pool off
+        - action: light.turn_off
+          target:
+            entity_id: "{{ candidates }}"
+
+###############################################################################
+# 2) Auto arm/disarm based on presence
+###############################################################################
+- id: presence_simulation_auto_arm
+  alias: Presence Simulation – Auto arm/disarm on presence
+  mode: single
+  triggers:
+    - trigger: state
+      entity_id: person.portavales
+  actions:
+    - choose:
+        - conditions:
+            - condition: state
+              entity_id: person.portavales
+              state: "not_home"
+          sequence:
+            - action: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.presence_simulator
+      default:
+        - action: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.presence_simulator

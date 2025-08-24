@@ -1,0 +1,62 @@
+# dashboards/button_card_templates.yaml
+#
+# Shared templates for custom:button-card
+# ──────────────────────────────────────
+
+room_card:
+  # ── Visual basics ────────────────────────────────────────────────
+  show_icon: true
+  show_name: true
+  show_state: false          # we’ll print custom info in `label:` instead
+  layout: vertical
+  size: 30%                  # icon size versus card
+
+  styles:
+    card:
+      - background: var(--md-sys-color-surface-container-high)
+      - border-radius: 20px
+      - box-shadow: var(--md-sys-color-shadow) 0 2px 4px
+      - padding: 12px
+      - transition: background 0.3s ease
+    icon:
+      - width: 48px
+      - height: 48px
+      - color: >
+          [[[
+            return entity && entity.state === 'on'
+              ? 'var(--md-sys-color-primary)'
+              : 'var(--md-sys-color-on-surface-variant)';
+          ]]]
+    name:
+      - margin-top: 8px
+      - font-weight: 500
+      - color: var(--md-sys-color-on-surface)
+    label:
+      - font-size: 0.9rem
+      - color: var(--md-sys-color-on-surface-variant)
+
+  # ── Actions ──────────────────────────────────────────────────────
+  tap_action:
+    action: more-info
+  hold_action:
+    action: navigate
+    navigation_path: >
+      [[[
+        /* Fallback to root if entity is undefined */
+        if (!entity) return '/lovelace';
+        const room = entity.entity_id.split('.')[1].split('_')[0];
+        return `/lovelace/room_${room}`;
+      ]]]
+
+  # ── Dynamic label (example: thermostat temp) ─────────────────────
+  label: >
+    [[[
+      /* Show current temp if a thermostat entity was passed via variables */
+      if (variables && variables.thermostat) {
+        const t = states[variables.thermostat];
+        if (t && t.attributes && t.attributes.current_temperature !== undefined) {
+          return t.attributes.current_temperature + '°';
+        }
+      }
+      return ''; // otherwise no label
+    ]]]

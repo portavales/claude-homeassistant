@@ -1,0 +1,74 @@
+button_card_templates: !include button_card_templates.yaml
+
+title: Material You        # dashboard title in the sidebar
+
+views:
+  - title: Main            # label on the blue tab bar
+    path: md3              # slug after /lovelace/md3-dashboard/md3
+    icon: mdi:home
+    layout:
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr))
+      grid-gap: 12px
+
+    cards:
+      ##
+      # ─── TOP CHIP BAR ───────────────────────────────────────────────
+      ##
+      - type: custom:mushroom-chips-card
+        chips:
+          - type: weather
+            entity: weather.forecast_home
+          - type: entity
+            entity: person.portavales
+            icon_color: accent
+          - type: template
+            icon: mdi:door
+            content: >
+              {{ states('binary_sensor.front_door_window') | title }}
+            icon_color: >
+              {{ 'red' if is_state('binary_sensor.front_door_window','on')
+                        else 'green' }}
+          - type: template
+            icon: mdi:walk
+            content: >
+              {% set e = states.binary_sensor.kitchen_stairs_motion_motion %}
+              Last motion {{ e and relative_time(e.last_changed) or "—" }}
+          - type: template
+            icon: mdi:white-balance-sunny
+            content: >
+              {{ states('sensor.sun_next_setting') | as_datetime | relative_time }}
+
+      ##
+      # ─── QUICK-ACTIONS ROW ──────────────────────────────────────────
+      ##
+      - type: conditional
+        conditions:
+          - entity: scene.lr_all_off
+            state_not: unavailable
+        card:
+          type: horizontal-stack
+          cards:
+            - type: button
+              entity: scene.lr_all_off
+              name: All Off
+              icon: mdi:lightbulb-off
+            - type: button
+              entity: scene.lr_table
+              name: Table On
+              icon: mdi:lightbulb-group
+            - type: button
+              entity: scene.lr_carpet_dim
+              name: Carpet Dim
+              icon: mdi:brightness-4
+
+      ##
+      # ─── ROOM CARDS ────────────────────────────────────────────────
+      ##
+      - type: custom:button-card
+        template: room_card
+        name: Living Room
+        entity: light.living_room_all_lights
+        variables:
+          thermostat: climate.living_room_thermostat
+          media_player: media_player.living_room_f
+          motion: binary_sensor.kitchen_stairs_motion_motion

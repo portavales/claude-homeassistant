@@ -1,62 +1,35 @@
-# Example Home Assistant Configuration File
-# This is a minimal example configuration for demonstration purposes
+# Loads default set of integrations. Do not remove.
+default_config:
 
-# Basic Home Assistant configuration
-homeassistant:
-  name: Home
-  latitude: 37.7749
-  longitude: -122.4194
-  elevation: 0
-  unit_system: metric
-  currency: USD
-  country: US
-  time_zone: America/Los_Angeles
-
-# Load frontend
+# Load frontend themes from the themes folder
 frontend:
+  themes: !include_dir_merge_named themes
 
-# Enable configuration panel
-config:
+automation ui:      !include automations.yaml          # created/edited in the UI
+automation manual:  !include_dir_merge_list automations  # your CLI yaml files
 
-# Enable the map panel
-map:
+script ui:     !include scripts.yaml                          # UI scripts only
+script manual: !include_dir_merge_list scripts                # your CLI yaml files
+scene ui:      !include scenes.yaml                    # UI scenes
+scene manual:  !include_dir_merge_list scenes          #  scenes/quick_actions.yaml
 
-# Enable mobile app integration
-mobile_app:
+ 
+# make the Living-room light-group load
+light: !include_dir_merge_list lights
 
-# Enable history and logbook
-history:
-logbook:
 
-# Enable system health
-system_health:
+logger:
+  default: info
+  logs:
+    custom_components.zeptrion_custom: debug
 
-# Include automations and scripts
-automation: !include automations.yaml
-script: !include scripts.yaml
-scene: !include scenes.yaml
+# Optional: explicitly register the YAML dashboard
+lovelace:
+  dashboards:
+    md3-dashboard:
+      mode: yaml
+      title: Main
+      icon: mdi:home
+      filename: dashboards/ui-main.yaml
+      show_in_sidebar: true
 
-# Example integrations
-weather:
-  - platform: met
-    name: Local Weather
-
-# Example groups
-group:
-  living_room:
-    name: "Living Room"
-    entities:
-      - light.living_room_main
-      - switch.living_room_fan
-
-# Example sensors
-sensor:
-  - platform: time_date
-    display_options:
-      - 'time'
-      - 'date'
-
-# Example binary sensors
-binary_sensor:
-  - platform: workday
-    country: US

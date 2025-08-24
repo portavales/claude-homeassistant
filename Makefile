@@ -7,7 +7,7 @@ HA_REMOTE_PATH = /config/
 LOCAL_CONFIG_PATH = config/
 
 BACKUP_DIR = backups
-VENV_PATH = venv
+VENV_PATH = .venv
 TOOLS_PATH = tools
 RSYNC_EXCLUDES = .rsyncignore
 
@@ -17,7 +17,8 @@ YELLOW = \033[1;33m
 RED = \033[0;31m
 NC = \033[0m # No Color
 
-.PHONY: help pull push validate backup clean setup test status entities dry-run-push dry-run-pull check-setup
+.PHONY: help pull push validate backup clean setup test status entities \
+        dry-run-push dry-run-pull check-setup pull-registries pull-storage
 
 # ==== Default target ====
 help:
@@ -28,17 +29,17 @@ help:
 	@echo "  $(YELLOW)push$(NC)           - Push local config to Home Assistant (with validation)"
 	@echo "  $(YELLOW)dry-run-push$(NC)   - Preview what would be pushed"
 	@echo "  $(YELLOW)dry-run-pull$(NC)   - Preview what would be pulled"
-	@echo "  $(YELLOW)validate$(NC)       - Run all validation tests"
+	@echo "  $(YELLOW)validate$(NC)       - Run all validation tests (auto-pulls registries if missing)"
+	@echo "  $(YELLOW)pull-registries$(NC)- Pull minimal HA registries used by the reference validator"
 	@echo "  $(YELLOW)backup$(NC)         - Create timestamped backup of LOCAL config/"
 	@echo "  $(YELLOW)setup$(NC)          - Set up Python environment and dependencies"
 	@echo "  $(YELLOW)test$(NC)           - Alias for validate"
 	@echo "  $(YELLOW)status$(NC)         - Show configuration status and entity counts"
-	@echo "  $(YELLOW)entities$(NC)       - Explore available entities (ARGS='--domain light' etc.)"
+	@echo "  $(YELLOW)entities$(NC)       - Explore entities (ARGS='--domain light', '--area \"Kitchen\"', etc.)"
 	@echo "  $(YELLOW)clean$(NC)          - Clean up temporary files and caches"
 
 # ==== Rsync helpers (non-destructive by default) ====
-# NOTE: We do NOT use --delete or --delete-excluded by default
-# to avoid removing runtime folders on the server (e.g. custom_components, .storage).
+# NOTE: We do NOT use --delete by default to avoid removing runtime folders on the server.
 
 # Pull configuration from Home Assistant
 pull:
@@ -71,8 +72,22 @@ dry-run-pull:
 	@rsync -avzn --exclude-from=$(RSYNC_EXCLUDES) \
 		$(HA_HOST):$(HA_REMOTE_PATH) $(LOCAL_CONFIG_PATH)
 
+# ==== Minimal registries for reference validation ====
+pull-registries:
+	@mkdir -p $(LOCAL_CONFIG_PATH).storage
+	@rsync -avz $(HA_HOST):$(HA_REMOTE_PATH).storage/core.entity_registry $(LOCAL_CONFIG_PATH).storage/ 2>/dev/null || true
+	@rsync -avz $(HA_HOST):$(HA_REMOTE_PATH).storage/core.device_registry $(LOCAL_CONFIG_PATH).storage/ 2>/dev/null || true
+	@rsync -avz $(HA_HOST):$(HA_REMOTE_PATH).storage/core.area_registry   $(LOCAL_CONFIG_PATH).storage/ 2>/dev/null || true
+
+# Alias for convenience (some folks expect 'pull-storage')
+pull-storage: pull-registries
+
 # ==== Validation ====
 validate: check-setup
+	@if [ ! -f "$(LOCAL_CONFIG_PATH).storage/core.entity_registry" ] || [ ! -f "$(LOCAL_CONFIG_PATH).storage/core.device_registry" ]; then \
+		echo "$(YELLOW)Entity/device registries missing locally; pulling minimal registries for validation...$(NC)"; \
+		$(MAKE) pull-registries; \
+	fi
 	@echo "$(GREEN)Running Home Assistant configuration validation...$(NC)"
 	@. $(VENV_PATH)/bin/activate && python $(TOOLS_PATH)/run_tests.py
 
@@ -139,8 +154,5 @@ check-setup:
 	fi
 
 # ==== Optional STRICT MIRROR MODE (use with caution) ====
-# If you ever WANT the server to mirror your repo exactly (and delete stray YAMLs),
-# uncomment the two lines below to add --delete. Do NOT use --delete-excluded
-# unless you intentionally want to delete excluded paths on the server as well.
 #STRICT_DELETE = --delete
 #RSYNC_DELETE_FLAG = $(STRICT_DELETE)

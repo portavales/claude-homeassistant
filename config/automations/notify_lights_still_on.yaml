@@ -1,0 +1,21 @@
+  - alias: Notify – Lights on while away 24h
+    id: lights_on_while_away
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: person.portavales
+        to: "not_home"
+        for: "24:00:00"
+    condition: >
+      {{ states.light | selectattr('state','eq','on') | list | length > 0 }}
+    action:
+      - service: persistent_notification.create
+        data:
+          title: "Lights are still on"
+          message: >-
+            The following lights are on: {{
+              states.light
+              | selectattr('state','eq','on')
+              | map(attribute='name')
+              | join(', ')
+            }}

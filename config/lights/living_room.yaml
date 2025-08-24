@@ -1,0 +1,9 @@
+# lights/living_room.yaml
+- platform: group
+  name: Living Room – All Lights
+  entities:
+    - light.living_room_lights_1
+    - light.living_room_lights_2
+    - light.living_room_lights_3
+    - light.living_room_lights_4
+    - light.living_room_lights_5

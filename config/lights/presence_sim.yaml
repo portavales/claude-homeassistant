@@ -1,0 +1,9 @@
+# lights/presence_sim.yaml
+- platform: group
+  name: Presence Simulation – All Lights
+  unique_id: presence_sim_all_lights
+  entities:
+    - light.kitchen_lights_2
+    - light.living_room_lights_2
+    - light.living_room_lights_3
+    - light.master_bathroom_lights_2
