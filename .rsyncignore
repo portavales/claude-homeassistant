@@ -1,0 +1,21 @@
+# Paths are relative to the root of config/
+
+# HA runtime
+home-assistant_v2.db*
+home-assistant.log*
+.cloud/
+.storage/
+deps/
+tts/
+
+# HACS & custom stuff managed by HA/HACS
+custom_components/
+custom_icons/
+themes/
+
+# Misc runtime / temp
+*.db
+*.db-shm
+*.db-wal
+*.log*
+.uuid
